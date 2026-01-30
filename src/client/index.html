@@ -80,6 +80,68 @@
             50% { box-shadow: 0 10px 60px rgba(255, 107, 53, 0.6); }
         }
         
+        .continuous-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 56px;
+            height: 30px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #333;
+            border-radius: 30px;
+            transition: 0.3s;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        
+        .toggle-switch input:checked + .toggle-slider {
+            background: #ff6b35;
+        }
+        
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        .toggle-label {
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .toggle-hint {
+            color: #666;
+            font-size: 0.85rem;
+        }
+        
         .status {
             font-size: 1.1rem;
             color: #888;
@@ -176,6 +238,15 @@
             Hold to Talk
         </button>
         
+        <div class="continuous-toggle">
+            <label class="toggle-switch">
+                <input type="checkbox" id="continuousMode">
+                <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label">Continuous Mode</span>
+            <span class="toggle-hint">(hands-free, like Grok)</span>
+        </div>
+        
         <p class="status" id="status">Ready</p>
         
         <div class="transcript-box">
@@ -190,8 +261,9 @@
         <p class="error" id="error"></p>
         
         <div class="instructions">
-            <p><strong>Instructions:</strong> Hold the button and speak. Release to send.</p>
-            <p style="margin-top: 10px;">Press <code>Space</code> to toggle recording.</p>
+            <p><strong>Push-to-talk:</strong> Hold the button and speak. Release to send.</p>
+            <p style="margin-top: 10px;"><strong>Continuous mode:</strong> Toggle ON for hands-free. Tap to start, it auto-listens after each response. Perfect for driving! 🚗</p>
+            <p style="margin-top: 10px;">Keyboard: <code>Space</code> to toggle recording.</p>
         </div>
     </div>
 
@@ -201,11 +273,18 @@
         const transcriptEl = document.getElementById('transcript');
         const errorEl = document.getElementById('error');
         const clearBtn = document.getElementById('clearBtn');
+        const continuousModeToggle = document.getElementById('continuousMode');
         
         let ws = null;
         let mediaRecorder = null;
         let audioContext = null;
+        let audioSource = null;
+        let audioProcessor = null;
+        let mediaStream = null;
         let isRecording = false;
+        let continuousMode = false;
+        let silenceTimer = null;
+        let silenceThreshold = 1500; // ms of silence before stopping
         
         // Connect to WebSocket
         function connect() {
@@ -237,7 +316,7 @@
         function handleMessage(msg) {
             switch (msg.type) {
                 case 'listening_started':
-                    setStatus('Listening...', true);
+                    setStatus(continuousMode ? '🎙️ Listening (continuous)...' : 'Listening...', true);
                     break;
                 case 'listening_stopped':
                     setStatus('Processing...');
@@ -250,8 +329,18 @@
                     addTranscript('AI', msg.text, 'assistant');
                     break;
                 case 'audio_response':
-                    playAudio(msg.data, msg.sample_rate);
-                    setStatus('Ready');
+                    playAudioWithCallback(msg.data, msg.sample_rate, () => {
+                        // After audio finishes playing
+                        if (continuousMode) {
+                            setStatus('🎙️ Ready to listen...', true);
+                            setTimeout(() => {
+                                if (continuousMode) startRecording();
+                            }, 300);
+                        } else {
+                            setStatus('Ready');
+                        }
+                    });
+                    setStatus('Speaking...');
                     break;
                 case 'pong':
                     break;
@@ -276,33 +365,49 @@
             if (isRecording) return;
             
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: {
-                        sampleRate: 16000,
-                        channelCount: 1,
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                    }
-                });
+                // Reuse stream if available, otherwise get new one
+                if (!mediaStream) {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            sampleRate: 16000,
+                            channelCount: 1,
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                        }
+                    });
+                }
                 
                 audioContext = new AudioContext({ sampleRate: 16000 });
-                const source = audioContext.createMediaStreamSource(stream);
-                const processor = audioContext.createScriptProcessor(4096, 1, 1);
+                audioSource = audioContext.createMediaStreamSource(mediaStream);
+                audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
                 
-                processor.onaudioprocess = (e) => {
+                let lastSoundTime = Date.now();
+                
+                audioProcessor.onaudioprocess = (e) => {
                     if (isRecording && ws && ws.readyState === WebSocket.OPEN) {
                         const audioData = e.inputBuffer.getChannelData(0);
                         const base64 = float32ToBase64(audioData);
                         ws.send(JSON.stringify({ type: 'audio', data: base64 }));
+                        
+                        // Simple VAD: check if audio has energy
+                        if (continuousMode) {
+                            const energy = audioData.reduce((sum, val) => sum + Math.abs(val), 0) / audioData.length;
+                            if (energy > 0.01) {
+                                lastSoundTime = Date.now();
+                            } else if (Date.now() - lastSoundTime > silenceThreshold) {
+                                // Silence detected - stop recording
+                                stopRecording();
+                            }
+                        }
                     }
                 };
                 
-                source.connect(processor);
-                processor.connect(audioContext.destination);
+                audioSource.connect(audioProcessor);
+                audioProcessor.connect(audioContext.destination);
                 
                 isRecording = true;
                 voiceBtn.classList.add('listening');
-                voiceBtn.textContent = 'Listening...';
+                voiceBtn.textContent = continuousMode ? '🎙️ Listening...' : 'Listening...';
                 
                 ws.send(JSON.stringify({ type: 'start_listening' }));
                 
@@ -316,11 +421,26 @@
             
             isRecording = false;
             voiceBtn.classList.remove('listening');
-            voiceBtn.textContent = 'Hold to Talk';
+            voiceBtn.textContent = continuousMode ? 'Tap to Talk' : 'Hold to Talk';
             
+            // Disconnect processor but keep stream for continuous mode
+            if (audioProcessor) {
+                audioProcessor.disconnect();
+                audioProcessor = null;
+            }
+            if (audioSource) {
+                audioSource.disconnect();
+                audioSource = null;
+            }
             if (audioContext) {
                 audioContext.close();
                 audioContext = null;
+            }
+            
+            // Only release stream if not in continuous mode
+            if (!continuousMode && mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
             }
             
             if (ws && ws.readyState === WebSocket.OPEN) {
@@ -330,6 +450,10 @@
         
         // Audio playback
         function playAudio(base64Data, sampleRate) {
+            playAudioWithCallback(base64Data, sampleRate, null);
+        }
+        
+        function playAudioWithCallback(base64Data, sampleRate, callback) {
             const audioCtx = new AudioContext({ sampleRate: sampleRate });
             const audioData = base64ToFloat32(base64Data);
             const buffer = audioCtx.createBuffer(1, audioData.length, sampleRate);
@@ -338,6 +462,11 @@
             const source = audioCtx.createBufferSource();
             source.buffer = buffer;
             source.connect(audioCtx.destination);
+            
+            if (callback) {
+                source.onended = callback;
+            }
+            
             source.start();
         }
         
@@ -361,11 +490,33 @@
         }
         
         // Event listeners
-        voiceBtn.addEventListener('mousedown', startRecording);
-        voiceBtn.addEventListener('mouseup', stopRecording);
-        voiceBtn.addEventListener('mouseleave', stopRecording);
-        voiceBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecording(); });
-        voiceBtn.addEventListener('touchend', stopRecording);
+        voiceBtn.addEventListener('mousedown', () => {
+            if (!continuousMode) startRecording();
+        });
+        voiceBtn.addEventListener('mouseup', () => {
+            if (!continuousMode) stopRecording();
+        });
+        voiceBtn.addEventListener('mouseleave', () => {
+            if (!continuousMode) stopRecording();
+        });
+        voiceBtn.addEventListener('touchstart', (e) => { 
+            e.preventDefault(); 
+            if (!continuousMode) startRecording();
+        });
+        voiceBtn.addEventListener('touchend', () => {
+            if (!continuousMode) stopRecording();
+        });
+        
+        // Tap for continuous mode
+        voiceBtn.addEventListener('click', () => {
+            if (continuousMode) {
+                if (isRecording) {
+                    stopRecording();
+                } else {
+                    startRecording();
+                }
+            }
+        });
         
         // Spacebar to toggle
         document.addEventListener('keydown', (e) => {
@@ -381,6 +532,27 @@
         
         clearBtn.addEventListener('click', () => {
             transcriptEl.innerHTML = '';
+        });
+        
+        // Continuous mode toggle
+        continuousModeToggle.addEventListener('change', (e) => {
+            continuousMode = e.target.checked;
+            voiceBtn.textContent = continuousMode ? 'Tap to Talk' : 'Hold to Talk';
+            
+            if (continuousMode) {
+                setStatus('🎙️ Continuous mode ON — tap to start', true);
+                // Pre-request mic permission
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(stream => { mediaStream = stream; })
+                    .catch(err => { errorEl.textContent = `Mic access needed: ${err.message}`; });
+            } else {
+                setStatus('Ready');
+                // Release mic
+                if (mediaStream && !isRecording) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                    mediaStream = null;
+                }
+            }
         });
         
         // Connect on load
