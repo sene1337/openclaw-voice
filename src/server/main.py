@@ -117,6 +117,8 @@ async def startup():
 
 
 @app.get("/")
+@app.get("/voice")
+@app.get("/voice/")
 async def index():
     """Serve the demo page."""
     return FileResponse("src/client/index.html")
@@ -185,6 +187,7 @@ async def get_usage(api_key: str):
 
 
 @app.websocket("/ws")
+@app.websocket("/voice/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """Handle voice WebSocket connections."""
     # Check for API key in query params or headers

@@ -296,9 +296,12 @@
         function connect() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const apiKey = getApiKey();
+            // Support serving from subdirectory (e.g., /voice)
+            const basePath = window.location.pathname.replace(/\/$/, '');
+            const wsPath = basePath ? `${basePath}/ws` : '/ws';
             const wsUrl = apiKey 
-                ? `${protocol}//${window.location.host}/ws?api_key=${apiKey}`
-                : `${protocol}//${window.location.host}/ws`;
+                ? `${protocol}//${window.location.host}${wsPath}?api_key=${apiKey}`
+                : `${protocol}//${window.location.host}${wsPath}`;
             
             ws = new WebSocket(wsUrl);
             
