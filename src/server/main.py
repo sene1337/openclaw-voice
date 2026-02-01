@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     backend_model: str = "gpt-4o-mini"
     openai_api_key: Optional[str] = None
     
+    # OpenClaw Gateway (auto-detected from CLAWDBOT_GATEWAY_URL + TOKEN)
+    clawdbot_gateway_url: Optional[str] = None
+    clawdbot_gateway_token: Optional[str] = None
+    
     # Audio
     sample_rate: int = 16000
     
@@ -101,13 +105,34 @@ async def startup():
     )
     
     # Initialize AI backend
-    logger.info(f"Connecting to backend: {settings.backend_type}")
-    backend = AIBackend(
-        backend_type=settings.backend_type,
-        url=settings.backend_url,
-        model=settings.backend_model,
-        api_key=settings.openai_api_key or os.getenv("OPENAI_API_KEY"),
-    )
+    # Auto-detect OpenClaw gateway
+    gateway_url = settings.clawdbot_gateway_url or os.getenv("CLAWDBOT_GATEWAY_URL")
+    gateway_token = settings.clawdbot_gateway_token or os.getenv("CLAWDBOT_GATEWAY_TOKEN")
+    
+    if gateway_url and gateway_token:
+        # Use OpenClaw gateway (connects to Aria!)
+        logger.info(f"🦞 Connecting to OpenClaw gateway: {gateway_url}")
+        backend = AIBackend(
+            backend_type="openai",  # Gateway speaks OpenAI API
+            url=f"{gateway_url}/v1",
+            model="openclaw:voice",  # Maps to 'voice' agent in config
+            api_key=gateway_token,
+            system_prompt=(
+                "This conversation is happening via real-time voice chat. "
+                "Keep responses concise and conversational — a few sentences "
+                "at most unless the topic genuinely needs depth. "
+                "No markdown, bullet points, code blocks, or special formatting."
+            ),
+        )
+    else:
+        # Fallback to direct OpenAI
+        logger.info(f"Connecting to backend: {settings.backend_type}")
+        backend = AIBackend(
+            backend_type=settings.backend_type,
+            url=settings.backend_url,
+            model=settings.backend_model,
+            api_key=settings.openai_api_key or os.getenv("OPENAI_API_KEY"),
+        )
     
     # Initialize VAD
     logger.info("Loading VAD model")
