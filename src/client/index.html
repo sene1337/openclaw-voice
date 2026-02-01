@@ -366,6 +366,12 @@
             };
         }
         
+        // Audio queue for streaming playback
+        let audioQueue = [];
+        let isPlayingQueue = false;
+        let currentResponseElement = null;
+        let streamingText = '';
+        
         function handleMessage(msg) {
             switch (msg.type) {
                 case 'listening_started':
@@ -377,26 +383,110 @@
                 case 'transcript':
                     addTranscript('You', msg.text, 'user');
                     setStatus('Getting response...');
+                    // Reset streaming state
+                    streamingText = '';
+                    currentResponseElement = null;
+                    audioQueue = [];
                     break;
                 case 'response_text':
+                    // Legacy non-streaming response
                     addTranscript('AI', msg.text, 'assistant');
                     break;
+                case 'response_chunk':
+                    // Streaming text chunk
+                    streamingText += msg.text;
+                    updateStreamingTranscript(streamingText);
+                    setStatus('Speaking...', true);
+                    break;
+                case 'audio_chunk':
+                    // Queue audio chunk for playback
+                    queueAudioChunk(msg.data, msg.sample_rate);
+                    break;
+                case 'response_complete':
+                    // Finalize the response
+                    if (currentResponseElement) {
+                        currentResponseElement.innerHTML = `<strong>AI:</strong> ${renderMarkdown(msg.text)}`;
+                    }
+                    break;
                 case 'audio_response':
-                    playAudioWithCallback(msg.data, msg.sample_rate, () => {
-                        // After audio finishes playing
-                        if (continuousMode) {
-                            setStatus('🎙️ Ready to listen...', true);
-                            setTimeout(() => {
-                                if (continuousMode) startRecording();
-                            }, 300);
-                        } else {
-                            setStatus('Ready');
-                        }
-                    });
+                    // Legacy non-streaming audio
+                    playAudioWithCallback(msg.data, msg.sample_rate, onAudioComplete);
                     setStatus('Speaking...');
                     break;
                 case 'pong':
                     break;
+            }
+        }
+        
+        function updateStreamingTranscript(text) {
+            if (!currentResponseElement) {
+                currentResponseElement = document.createElement('p');
+                currentResponseElement.className = 'assistant';
+                transcriptEl.appendChild(currentResponseElement);
+            }
+            currentResponseElement.innerHTML = `<strong>AI:</strong> ${renderMarkdown(text)}`;
+            transcriptEl.scrollTop = transcriptEl.scrollHeight;
+        }
+        
+        function queueAudioChunk(base64Data, sampleRate) {
+            audioQueue.push({ data: base64Data, sampleRate });
+            if (!isPlayingQueue) {
+                playNextInQueue();
+            }
+        }
+        
+        async function playNextInQueue() {
+            if (audioQueue.length === 0) {
+                isPlayingQueue = false;
+                onAudioComplete();
+                return;
+            }
+            
+            isPlayingQueue = true;
+            const { data, sampleRate } = audioQueue.shift();
+            
+            try {
+                // Decode base64 to PCM
+                const binaryString = atob(data);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                
+                // Convert to Int16 then Float32
+                const int16 = new Int16Array(bytes.buffer);
+                const float32 = new Float32Array(int16.length);
+                for (let i = 0; i < int16.length; i++) {
+                    float32[i] = int16[i] / 32768.0;
+                }
+                
+                // Create audio buffer and play
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+                const buffer = audioCtx.createBuffer(1, float32.length, sampleRate);
+                buffer.copyToChannel(float32, 0);
+                
+                const source = audioCtx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioCtx.destination);
+                source.onended = () => {
+                    audioCtx.close();
+                    playNextInQueue();
+                };
+                source.start(0);
+            } catch (e) {
+                console.error('Audio playback error:', e);
+                playNextInQueue();
+            }
+        }
+        
+        function onAudioComplete() {
+            if (continuousMode) {
+                setStatus('🎙️ Ready to listen...', true);
+                setTimeout(() => {
+                    if (continuousMode) startRecording();
+                }, 300);
+            } else {
+                setStatus('Ready');
             }
         }
         

@@ -279,33 +279,70 @@ async def websocket_endpoint(websocket: WebSocket):
                     logger.info(f"Transcript: {transcript}")
                     
                     if transcript.strip():
-                        # Get AI response
-                        logger.debug("Getting AI response...")
-                        response_text = await backend.chat(transcript)
+                        # Stream AI response with progressive TTS
+                        logger.debug("Streaming AI response...")
                         
-                        # Send original text for display (with markdown)
+                        full_response = ""
+                        sentence_buffer = ""
+                        audio_chunks = []
+                        
+                        # Stream response and synthesize sentences as they complete
+                        async for chunk in backend.chat_stream(transcript):
+                            full_response += chunk
+                            sentence_buffer += chunk
+                            
+                            # Send text chunk for progressive display
+                            await websocket.send_json({
+                                "type": "response_chunk",
+                                "text": chunk,
+                            })
+                            
+                            # Check for sentence boundaries
+                            while any(sep in sentence_buffer for sep in ['. ', '! ', '? ', '.\n', '!\n', '?\n']):
+                                # Find first sentence boundary
+                                earliest_idx = len(sentence_buffer)
+                                for sep in ['. ', '! ', '? ', '.\n', '!\n', '?\n']:
+                                    idx = sentence_buffer.find(sep)
+                                    if idx != -1 and idx < earliest_idx:
+                                        earliest_idx = idx + len(sep)
+                                
+                                if earliest_idx < len(sentence_buffer):
+                                    sentence = sentence_buffer[:earliest_idx].strip()
+                                    sentence_buffer = sentence_buffer[earliest_idx:]
+                                    
+                                    if sentence:
+                                        # Clean and synthesize this sentence
+                                        speech_text = clean_for_speech(sentence)
+                                        if speech_text:
+                                            logger.debug(f"Synthesizing: {speech_text[:50]}...")
+                                            async for audio_chunk in tts.synthesize_stream(speech_text):
+                                                audio_b64 = base64.b64encode(audio_chunk).decode()
+                                                await websocket.send_json({
+                                                    "type": "audio_chunk",
+                                                    "data": audio_b64,
+                                                    "sample_rate": 24000,
+                                                })
+                                else:
+                                    break
+                        
+                        # Handle any remaining text
+                        if sentence_buffer.strip():
+                            speech_text = clean_for_speech(sentence_buffer.strip())
+                            if speech_text:
+                                async for audio_chunk in tts.synthesize_stream(speech_text):
+                                    audio_b64 = base64.b64encode(audio_chunk).decode()
+                                    await websocket.send_json({
+                                        "type": "audio_chunk",
+                                        "data": audio_b64,
+                                        "sample_rate": 24000,
+                                    })
+                        
+                        # Signal end of response
                         await websocket.send_json({
-                            "type": "response_text",
-                            "text": response_text,
+                            "type": "response_complete",
+                            "text": full_response,
                         })
-                        logger.info(f"Response: {response_text}")
-                        
-                        # Clean text for TTS (remove markdown, hashtags, etc.)
-                        speech_text = clean_for_speech(response_text)
-                        logger.debug(f"Speech text: {speech_text}")
-                        
-                        # Generate speech from cleaned text
-                        logger.debug("Generating speech...")
-                        audio_response = await tts.synthesize(speech_text)
-                        
-                        # Send audio back
-                        audio_b64 = base64.b64encode(audio_response.tobytes()).decode()
-                        await websocket.send_json({
-                            "type": "audio_response",
-                            "data": audio_b64,
-                            "sample_rate": 24000,  # TTS output rate
-                            "text": response_text,  # Original for display
-                        })
+                        logger.info(f"Response complete: {full_response[:100]}...")
                 
                 audio_buffer = []
                 await websocket.send_json({"type": "listening_stopped"})

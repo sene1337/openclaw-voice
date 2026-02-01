@@ -4,7 +4,7 @@ Text-to-Speech module using ElevenLabs, Chatterbox, or fallbacks.
 
 import asyncio
 import os
-from typing import Optional
+from typing import Optional, AsyncGenerator
 from pathlib import Path
 
 import numpy as np
@@ -101,6 +101,31 @@ class ChatterboxTTS:
         """Synthesize speech from text."""
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, self._synthesize_sync, text)
+    
+    async def synthesize_stream(self, text: str) -> AsyncGenerator[bytes, None]:
+        """
+        Stream synthesized audio chunks.
+        
+        Yields:
+            Raw PCM audio chunks (24kHz, 16-bit)
+        """
+        if self._backend == "elevenlabs":
+            try:
+                # Use streaming API
+                audio_generator = self._elevenlabs_client.text_to_speech.convert(
+                    voice_id=self.voice_id,
+                    text=text,
+                    model_id="eleven_turbo_v2_5",
+                    output_format="pcm_24000",
+                )
+                for chunk in audio_generator:
+                    yield chunk
+            except Exception as e:
+                logger.error(f"ElevenLabs streaming error: {e}")
+        else:
+            # Non-streaming fallback
+            audio = await self.synthesize(text)
+            yield audio.tobytes()
     
     def _synthesize_sync(self, text: str) -> np.ndarray:
         """Synchronous synthesis."""

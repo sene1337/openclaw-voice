@@ -3,7 +3,7 @@ AI Backend module - connects to OpenAI, OpenClaw gateway, or custom backends.
 """
 
 import asyncio
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, AsyncGenerator
 
 from loguru import logger
 
@@ -65,6 +65,22 @@ class AIBackend:
             # Fallback echo response
             return f"I heard you say: {user_message}"
     
+    async def chat_stream(self, user_message: str) -> AsyncGenerator[str, None]:
+        """
+        Stream a response, yielding chunks as they arrive.
+        
+        Args:
+            user_message: The user's transcribed speech
+            
+        Yields:
+            Text chunks as they're generated
+        """
+        if self.backend_type == "openai" and self._client:
+            async for chunk in self._chat_openai_stream(user_message):
+                yield chunk
+        else:
+            yield f"I heard you say: {user_message}"
+    
     async def _chat_openai(self, user_message: str) -> str:
         """Chat via OpenAI API."""
         # Add user message to history
@@ -81,7 +97,7 @@ class AIBackend:
             response = await self._client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                max_tokens=150,  # Keep responses short for voice
+                max_tokens=500,  # Allow longer for voice
                 temperature=0.7,
             )
             
@@ -98,6 +114,45 @@ class AIBackend:
         except Exception as e:
             logger.error(f"OpenAI API error: {e}")
             return "Sorry, I had trouble processing that. Could you try again?"
+    
+    async def _chat_openai_stream(self, user_message: str) -> AsyncGenerator[str, None]:
+        """Stream chat via OpenAI API."""
+        # Add user message to history
+        self.conversation_history.append({
+            "role": "user",
+            "content": user_message,
+        })
+        
+        # Build messages
+        messages = [{"role": "system", "content": self.system_prompt}]
+        messages.extend(self.conversation_history[-10:])
+        
+        full_response = ""
+        
+        try:
+            stream = await self._client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                max_tokens=500,
+                temperature=0.7,
+                stream=True,
+            )
+            
+            async for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    text = chunk.choices[0].delta.content
+                    full_response += text
+                    yield text
+            
+            # Add complete response to history
+            self.conversation_history.append({
+                "role": "assistant",
+                "content": full_response,
+            })
+            
+        except Exception as e:
+            logger.error(f"OpenAI streaming error: {e}")
+            yield "Sorry, I had trouble processing that."
     
     def clear_history(self):
         """Clear conversation history."""
