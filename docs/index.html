@@ -3,9 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenClaw Voice — Real-time Voice Chat for AI</title>
-    <meta name="description" content="Browser-based voice conversations with AI. WebSocket streaming, local Whisper STT, ElevenLabs TTS.">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦞</text></svg>">
+    
+    <!-- Primary Meta Tags -->
+    <title>OpenClaw Voice — Free Open-Source Voice Chat for AI Assistants</title>
+    <meta name="title" content="OpenClaw Voice — Free Open-Source Voice Chat for AI Assistants">
+    <meta name="description" content="Talk to your AI assistant like Alexa. Self-hosted, private, open-source. Browser-based voice conversations with Whisper STT and ElevenLabs TTS. Works with OpenAI, Claude, and custom agents.">
+    <meta name="keywords" content="voice AI, speech to text, text to speech, AI assistant, voice chat, Whisper, ElevenLabs, OpenAI, Claude, self-hosted, open source, voice interface, conversational AI, voice bot, AI voice, browser voice chat">
+    <meta name="author" content="Purple Horizons">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://openclawvoice.com/">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://openclawvoice.com/">
+    <meta property="og:title" content="OpenClaw Voice — Free Open-Source Voice Chat for AI">
+    <meta property="og:description" content="Talk to your AI like Alexa. Self-hosted, private, open-source. Browser-based voice with Whisper STT and ElevenLabs TTS.">
+    <meta property="og:image" content="https://openclawvoice.com/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="OpenClaw Voice">
+    <meta property="og:locale" content="en_US">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://openclawvoice.com/">
+    <meta name="twitter:title" content="OpenClaw Voice — Free Open-Source Voice Chat for AI">
+    <meta name="twitter:description" content="Talk to your AI like Alexa. Self-hosted, private, open-source. Browser-based voice with Whisper STT and ElevenLabs TTS.">
+    <meta name="twitter:image" content="https://openclawvoice.com/og-image.png">
+    <meta name="twitter:creator" content="@GianniDalerta">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦞</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦞</text></svg>">
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "OpenClaw Voice",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Cross-platform",
+        "description": "Open-source browser-based voice interface for AI assistants. Self-hosted voice chat with Whisper STT and ElevenLabs TTS.",
+        "url": "https://openclawvoice.com",
+        "downloadUrl": "https://github.com/Purple-Horizons/openclaw-voice",
+        "softwareVersion": "1.0.0",
+        "author": {
+            "@type": "Organization",
+            "name": "Purple Horizons",
+            "url": "https://purplehorizons.io"
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "featureList": [
+            "Browser-based voice chat",
+            "Local Whisper speech-to-text",
+            "ElevenLabs text-to-speech",
+            "OpenAI and Claude integration",
+            "Self-hosted and private",
+            "WebSocket streaming",
+            "Continuous conversation mode",
+            "Voice Activity Detection"
+        ],
+        "screenshot": "https://openclawvoice.com/og-image.png",
+        "license": "https://opensource.org/licenses/MIT"
+    }
+    </script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -22,7 +89,7 @@
         }
         
         .container {
-            max-width: 800px;
+            max-width: 900px;
             text-align: center;
         }
         
@@ -38,7 +105,7 @@
         }
         
         h1 {
-            font-size: 3rem;
+            font-size: 2.8rem;
             margin-bottom: 0.5rem;
             background: linear-gradient(90deg, #e94560, #ff6b6b);
             -webkit-background-clip: text;
@@ -47,8 +114,14 @@
         }
         
         .tagline {
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             color: #a0a0a0;
+            margin-bottom: 1rem;
+        }
+        
+        .sub-tagline {
+            font-size: 1rem;
+            color: #707070;
             margin-bottom: 2rem;
         }
         
@@ -144,6 +217,40 @@
             gap: 0.5rem;
         }
         
+        .use-cases {
+            margin-top: 3rem;
+            text-align: left;
+        }
+        
+        .use-cases h2 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+        
+        .use-case-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .use-case {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            border-left: 3px solid #e94560;
+        }
+        
+        .use-case strong {
+            color: #fff;
+        }
+        
+        .use-case span {
+            color: #888;
+            font-size: 0.9rem;
+        }
+        
         footer {
             margin-top: 4rem;
             color: #666;
@@ -154,30 +261,49 @@
             color: #e94560;
             text-decoration: none;
         }
+        
+        footer a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 600px) {
+            h1 { font-size: 2rem; }
+            .tagline { font-size: 1.1rem; }
+            .logo { font-size: 4rem; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="logo">🦞</div>
         <h1>OpenClaw Voice</h1>
-        <p class="tagline">Real-time voice conversations with AI</p>
+        <p class="tagline">Talk to your AI like you talk to Alexa</p>
+        <p class="sub-tagline">Self-hosted • Private • Open Source • Free</p>
         
         <div class="features">
             <div class="feature">
-                <h3>🎤 Local STT</h3>
-                <p>Whisper runs locally via faster-whisper. Your voice stays on your machine.</p>
+                <h3>🎤 Local Speech-to-Text</h3>
+                <p>Whisper runs locally via faster-whisper. Your voice never leaves your machine. Fast and private.</p>
             </div>
             <div class="feature">
-                <h3>🔊 Premium TTS</h3>
-                <p>ElevenLabs voices for natural, expressive speech output.</p>
+                <h3>🔊 Premium Text-to-Speech</h3>
+                <p>ElevenLabs integration for natural, expressive voices. Or use local Chatterbox for fully self-hosted.</p>
             </div>
             <div class="feature">
-                <h3>⚡ WebSocket Streaming</h3>
-                <p>Low-latency bidirectional audio over secure WebSockets.</p>
+                <h3>⚡ Low Latency Streaming</h3>
+                <p>WebSocket-based audio streaming for real-time conversations. Sub-second response times.</p>
             </div>
             <div class="feature">
-                <h3>🌐 Browser-First</h3>
-                <p>No app install. Works on desktop and mobile browsers.</p>
+                <h3>🌐 Works in Any Browser</h3>
+                <p>No app to install. Works on desktop and mobile. Just open the URL and start talking.</p>
+            </div>
+            <div class="feature">
+                <h3>🔌 Connect Any AI</h3>
+                <p>Works with OpenAI, Claude, or your own agent. Full OpenClaw gateway integration available.</p>
+            </div>
+            <div class="feature">
+                <h3>🏠 100% Self-Hosted</h3>
+                <p>Run on your own hardware. Your data stays on your servers. No subscriptions, no vendor lock-in.</p>
             </div>
         </div>
         
@@ -190,6 +316,28 @@
             </a>
         </div>
         
+        <div class="use-cases">
+            <h2>Built For</h2>
+            <div class="use-case-grid">
+                <div class="use-case">
+                    <strong>Developers</strong><br>
+                    <span>Add voice to your AI apps in minutes</span>
+                </div>
+                <div class="use-case">
+                    <strong>Power Users</strong><br>
+                    <span>Hands-free AI while driving or cooking</span>
+                </div>
+                <div class="use-case">
+                    <strong>Privacy-Focused</strong><br>
+                    <span>Keep conversations off the cloud</span>
+                </div>
+                <div class="use-case">
+                    <strong>Makers</strong><br>
+                    <span>Build voice assistants for IoT & kiosks</span>
+                </div>
+            </div>
+        </div>
+        
         <div class="stack">
             <h3>Built With</h3>
             <div class="stack-items">
@@ -197,12 +345,17 @@
                 <span class="stack-item">🎙️ faster-whisper</span>
                 <span class="stack-item">🗣️ ElevenLabs</span>
                 <span class="stack-item">🔌 WebSockets</span>
+                <span class="stack-item">⚡ FastAPI</span>
             </div>
         </div>
         
         <footer>
-            Part of the <a href="https://openclaw.ai">OpenClaw</a> ecosystem<br>
-            Built by <a href="https://purplehorizons.io">Purple Horizons</a>
+            <p>Part of the <a href="https://openclaw.ai">OpenClaw</a> ecosystem</p>
+            <p>Built by <a href="https://purplehorizons.io">Purple Horizons</a> in Miami 🌴</p>
+            <p style="margin-top: 1rem; font-size: 0.8rem; color: #555;">
+                MIT License • <a href="https://github.com/Purple-Horizons/openclaw-voice">Source Code</a> • 
+                <a href="https://github.com/Purple-Horizons/openclaw-voice/issues">Report Issues</a>
+            </p>
         </footer>
     </div>
 </body>
