@@ -28,6 +28,7 @@ from .tts import ChatterboxTTS
 from .backend import AIBackend
 from .vad import VoiceActivityDetector
 from .auth import token_manager, load_keys_from_env, APIKey
+from .text_utils import clean_for_speech
 
 
 class Settings(BaseSettings):
@@ -282,15 +283,20 @@ async def websocket_endpoint(websocket: WebSocket):
                         logger.debug("Getting AI response...")
                         response_text = await backend.chat(transcript)
                         
+                        # Send original text for display (with markdown)
                         await websocket.send_json({
                             "type": "response_text",
                             "text": response_text,
                         })
                         logger.info(f"Response: {response_text}")
                         
-                        # Generate speech
+                        # Clean text for TTS (remove markdown, hashtags, etc.)
+                        speech_text = clean_for_speech(response_text)
+                        logger.debug(f"Speech text: {speech_text}")
+                        
+                        # Generate speech from cleaned text
                         logger.debug("Generating speech...")
-                        audio_response = await tts.synthesize(response_text)
+                        audio_response = await tts.synthesize(speech_text)
                         
                         # Send audio back
                         audio_b64 = base64.b64encode(audio_response.tobytes()).decode()
@@ -298,7 +304,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             "type": "audio_response",
                             "data": audio_b64,
                             "sample_rate": 24000,  # TTS output rate
-                            "text": response_text,
+                            "text": response_text,  # Original for display
                         })
                 
                 audio_buffer = []

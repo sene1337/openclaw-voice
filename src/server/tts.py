@@ -106,11 +106,11 @@ class ChatterboxTTS:
         """Synchronous synthesis."""
         if self._backend == "elevenlabs":
             try:
-                # Generate audio with ElevenLabs
+                # Generate audio with ElevenLabs (turbo model for speed)
                 audio_generator = self._elevenlabs_client.text_to_speech.convert(
                     voice_id=self.voice_id,
                     text=text,
-                    model_id="eleven_monolingual_v1",
+                    model_id="eleven_turbo_v2_5",  # Fastest model (~2x faster)
                     output_format="pcm_24000",  # 24kHz PCM (matches server expectation)
                 )
                 # Collect all chunks
