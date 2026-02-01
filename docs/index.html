@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenClaw Voice — Real-time Voice Chat for AI</title>
+    <meta name="description" content="Browser-based voice conversations with AI. WebSocket streaming, local Whisper STT, ElevenLabs TTS.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦞</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 800px;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .tagline {
+            font-size: 1.4rem;
+            color: #a0a0a0;
+            margin-bottom: 2rem;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 3rem 0;
+            text-align: left;
+        }
+        
+        .feature {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .feature h3 {
+            color: #e94560;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+        
+        .feature p {
+            color: #a0a0a0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .stack {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stack h3 {
+            color: #a0a0a0;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+        }
+        
+        .stack-items {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            color: #666;
+            font-size: 0.95rem;
+        }
+        
+        .stack-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        footer {
+            margin-top: 4rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        footer a {
+            color: #e94560;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🦞</div>
+        <h1>OpenClaw Voice</h1>
+        <p class="tagline">Real-time voice conversations with AI</p>
+        
+        <div class="features">
+            <div class="feature">
+                <h3>🎤 Local STT</h3>
+                <p>Whisper runs locally via faster-whisper. Your voice stays on your machine.</p>
+            </div>
+            <div class="feature">
+                <h3>🔊 Premium TTS</h3>
+                <p>ElevenLabs voices for natural, expressive speech output.</p>
+            </div>
+            <div class="feature">
+                <h3>⚡ WebSocket Streaming</h3>
+                <p>Low-latency bidirectional audio over secure WebSockets.</p>
+            </div>
+            <div class="feature">
+                <h3>🌐 Browser-First</h3>
+                <p>No app install. Works on desktop and mobile browsers.</p>
+            </div>
+        </div>
+        
+        <div class="cta-buttons">
+            <a href="https://github.com/Purple-Horizons/openclaw-voice" class="btn btn-primary">
+                ⭐ View on GitHub
+            </a>
+            <a href="https://openclaw.ai" class="btn btn-secondary">
+                🦞 OpenClaw
+            </a>
+        </div>
+        
+        <div class="stack">
+            <h3>Built With</h3>
+            <div class="stack-items">
+                <span class="stack-item">🐍 Python</span>
+                <span class="stack-item">🎙️ faster-whisper</span>
+                <span class="stack-item">🗣️ ElevenLabs</span>
+                <span class="stack-item">🔌 WebSockets</span>
+            </div>
+        </div>
+        
+        <footer>
+            Part of the <a href="https://openclaw.ai">OpenClaw</a> ecosystem<br>
+            Built by <a href="https://purplehorizons.io">Purple Horizons</a>
+        </footer>
+    </div>
+</body>
+</html>
