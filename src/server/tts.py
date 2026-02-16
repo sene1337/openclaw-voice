@@ -66,7 +66,7 @@ class ChatterboxTTS:
                 self._piper_model = PiperVoice.load(model_path)
                 self._piper_sample_rate = self._piper_model.config.sample_rate
                 from piper.config import SynthesisConfig
-                self._piper_synth_config = SynthesisConfig(length_scale=0.8)
+                self._piper_synth_config = SynthesisConfig(length_scale=0.65)
                 self._backend = "piper"
                 logger.info(f"✅ Piper TTS loaded ({self._piper_sample_rate}Hz)")
                 return
